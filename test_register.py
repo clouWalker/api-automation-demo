@@ -120,3 +120,41 @@ def test_register_duplicate_email():
     data = response2.json()
     assert "error" in data
     assert "Email already registered" in data["error"]
+
+def test_get_users():
+    # 先清空数据
+    requests.post(f"{Base_url}/reset")
+
+    #注册3个不同用户（准备数据）
+    for i in range(1,4):
+        payload = {
+            "email": f"user{i}@example.com",
+            "password": "123456"
+        }
+        resp = requests.post(f"{Base_url}/users", json=payload)
+        assert resp.status_code == 201
+
+    #测试1：获取所有用户（不分页，使用默认limit=10）
+    response = requests.get(f"{Base_url}/users")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 3
+    assert len(data["data"]) == 3
+    assert data["page"] == 1
+
+    #测试2：分页获取，每页2条
+    response = requests.get(f"{Base_url}/users?page=1&limit=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 3
+    assert len(data["data"]) == 2
+    assert data["page"] == 1
+    assert data["limit"] == 2
+
+    #测试3：超出范围的页码，应返回空列表
+    response = requests.get(f"{Base_url}/users?page=10&limit=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 0
+    assert data["total"] == 3
+

@@ -54,6 +54,28 @@ def reset():
     users.clear()
     return jsonify({"message": "reset success"}), 200
 
+@app.route('/users', methods=['GET'])
+def get_users():
+    # 获取查询参数 ?page=1&limit=2(可选）
+    page = request.args.get('page', default=1, type=int)    #request.args.get() 获取 URL 参数，如 /users?page=2&limit=5
+    limit = request.args.get('limit', default=10, type=int)
+
+    # 计算分页起始索引
+    start = (page - 1) * limit
+    end = start + limit
+
+    # 切片获取当前页数据
+    pagination_users = users[start:end]
+
+    #返回总记录数、当前页、每页条数、用户列表
+    return jsonify({
+        "total": len(users),
+        "page" : page,
+        "limit" : limit,
+        "data" : pagination_users
+    }),200
+
+
 # 5. 启动服务器（如果直接运行这个脚本）
 if __name__ == '__main__':
     app.run(port=3000)  # 监听本机的 3000 端口
