@@ -75,6 +75,17 @@ def get_users():
         "data" : pagination_users
     }),200
 
+#<int:user_id>表示URL路径中的参数，例如DELETE/users/2 会删除id为2的用户
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    # 查找用户是否存在
+    for user in users:
+        if user["id"] == user_id:
+            users.remove(user)
+            return jsonify({"message": f"User {user_id} deleted"}), 200
+    # 未找到用户
+    return jsonify({"error": "User not found"}), 404
+
 
 # 5. 启动服务器（如果直接运行这个脚本）
 if __name__ == '__main__':

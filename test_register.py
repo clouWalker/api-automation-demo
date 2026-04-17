@@ -158,3 +158,31 @@ def test_get_users():
     assert len(data["data"]) == 0
     assert data["total"] == 3
 
+
+def test_delete_user_success():
+    """先创建一个用户，然后删除它，断言删除成功，且再次获取用户列表时不再包含该用户"""
+    requests.post(f"{Base_url}/reset")
+    # 1. 创建用户
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "delete@example.com", "password": "123456"})
+    assert create_resp.status_code == 201
+    user_id = create_resp.json()["id"]
+
+    # 2. 删除用户
+    delete_resp = requests.delete(f"{Base_url}/users/{user_id}")
+    assert delete_resp.status_code == 200
+    assert "deleted" in delete_resp.json()["message"]
+
+    # 3. 验证用户已从列表中消失
+    get_resp = requests.get(f"{Base_url}/users")
+    assert get_resp.status_code == 200
+    data = get_resp.json()
+    users_list = data.get("data", [])  # 修正点
+    assert not any(u["id"] == user_id for u in users_list)
+
+
+def test_delete_user_not_found():
+    """删除一个不存在的用户ID，期望返回404"""
+    requests.post(f"{Base_url}/reset")
+    delete_resp = requests.delete(f"{Base_url}/users/999")
+    assert delete_resp.status_code == 404
+    assert "User not found" in delete_resp.json()["error"]
