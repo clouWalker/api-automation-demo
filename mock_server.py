@@ -87,6 +87,37 @@ def delete_user(user_id):
     return jsonify({"error": "User not found"}), 404
 
 
+@app.route('/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    """更新用户邮箱，需要校验新邮箱格式及是否已被其他用户占用"""
+    data = request.get_json()
+    if not data or 'email' not in data:
+        return jsonify({"error": "Missing email"}), 400
+
+    new_email = data['email']
+
+    # 1. 邮箱格式校验
+    if '@' not in new_email:
+        return jsonify({"error": "Invalid email format"}), 400
+
+    # 2. 查找用户是否存在
+    target_user = None
+    for user in users:
+        if user['id'] == user_id:
+            target_user = user
+            break
+    if target_user is None:
+        return jsonify({"error": "User not found"}), 404
+
+    # 3. 检查新邮箱是否已被其他用户占用
+    for user in users:
+        if user['email'] == new_email and user['id'] != user_id:
+            return jsonify({"error": "Email already registered"}), 409
+
+    # 4. 更新邮箱
+    target_user['email'] = new_email
+    return jsonify({"id": target_user['id'], "email": target_user['email']}), 200
+
 # 5. 启动服务器（如果直接运行这个脚本）
 if __name__ == '__main__':
     app.run(port=3000)  # 监听本机的 3000 端口

@@ -186,3 +186,62 @@ def test_delete_user_not_found():
     delete_resp = requests.delete(f"{Base_url}/users/999")
     assert delete_resp.status_code == 404
     assert "User not found" in delete_resp.json()["error"]
+
+
+def test_update_user_success():
+    """正常更新用户邮箱"""
+    requests.post(f"{Base_url}/reset")
+    # 创建用户
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "old@example.com", "password": "123456"})
+    assert create_resp.status_code == 201
+    user_id = create_resp.json()["id"]
+
+    # 更新邮箱
+    new_email = "new@example.com"
+    update_resp = requests.put(f"{Base_url}/users/{user_id}", json={"email": new_email})
+    assert update_resp.status_code == 200
+    assert update_resp.json()["email"] == new_email
+
+    # 验证 GET 用户列表中的邮箱已更新
+    get_resp = requests.get(f"{Base_url}/users")
+    users_list = get_resp.json().get("data", [])
+    updated_user = next((u for u in users_list if u["id"] == user_id), None)
+    assert updated_user is not None
+    assert updated_user["email"] == new_email
+
+
+def test_update_user_not_found():
+    """更新不存在的用户ID → 404"""
+    requests.post(f"{Base_url}/reset")
+    update_resp = requests.put(f"{Base_url}/users/999", json={"email": "any@example.com"})
+    assert update_resp.status_code == 404
+    assert "User not found" in update_resp.json()["error"]
+
+
+def test_update_user_invalid_email():
+    """新邮箱格式错误 → 400"""
+    requests.post(f"{Base_url}/reset")
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "valid@example.com", "password": "123456"})
+    assert create_resp.status_code == 201
+    user_id = create_resp.json()["id"]
+
+    update_resp = requests.put(f"{Base_url}/users/{user_id}", json={"email": "invalid-email"})
+    assert update_resp.status_code == 400
+    assert "Invalid email format" in update_resp.json()["error"]
+
+
+def test_update_user_email_conflict():
+    """新邮箱已被其他用户占用 → 409"""
+    requests.post(f"{Base_url}/reset")
+    # 创建两个用户
+    resp1 = requests.post(f"{Base_url}/users", json={"email": "first@example.com", "password": "123456"})
+    resp2 = requests.post(f"{Base_url}/users", json={"email": "second@example.com", "password": "123456"})
+    assert resp1.status_code == 201
+    assert resp2.status_code == 201
+    user1_id = resp1.json()["id"]
+    user2_email = resp2.json()["email"]  # "second@example.com"
+
+    # 尝试将 user1 的邮箱改为 user2 的邮箱
+    update_resp = requests.put(f"{Base_url}/users/{user1_id}", json={"email": user2_email})
+    assert update_resp.status_code == 409
+    assert "Email already registered" in update_resp.json()["error"]
