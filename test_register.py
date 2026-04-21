@@ -1,4 +1,5 @@
-import requests
+import requests,pytest
+
 #json-server --watch db,json.json --port 3000。 json-server并不是模拟真实服务器，有局限性，用mock服务器模拟更好
 # 你的私有API就运行在 http://localhost:3000 上了。
 
@@ -67,23 +68,6 @@ def test_register_missing_password():
     assert "error" in data, "响应中缺少错误信息"
     assert "Missing password" in data["error"], "错误信息不符合预期"
 
-def test_register_invalid_email():
-    """测试用例3：邮箱不含 @，期望 400，错误信息包含 "Invalid email format" """
-    requests.post(f"{Base_url}/reset")  # 清空数据
-
-    url = f"{Base_url}/users"
-    payload = {
-        #邮箱中故意不包含@
-        "email": "eve.holtreqres.in",
-        "password": "pistol1"
-    }
-    response = requests.post(url, json=payload)
-
-    assert response.status_code == 400, f"期望状态码400，实际为{response.status_code}"
-    data = response.json()
-    assert "error" in data, "响应中缺少错误信息"
-    assert "Invalid email format" in data["error"], "错误信息不符合预期"
-
 def test_register_short_password():
     """测试用例4：密码长度小于 6，期望 400，错误信息包含 "Password too short" """
     requests.post(f"{Base_url}/reset")  # 清空数据
@@ -106,7 +90,6 @@ def test_register_duplicate_email():
     
     url = f"{Base_url}/users"
     payload = {
-        # 密码长度小于6
         "email": "duplicate@example.com",
         "password": "password"
     }
@@ -245,3 +228,38 @@ def test_update_user_email_conflict():
     update_resp = requests.put(f"{Base_url}/users/{user1_id}", json={"email": user2_email})
     assert update_resp.status_code == 409
     assert "Email already registered" in update_resp.json()["error"]
+
+# def test_register_invalid_email():      #旧方法只能一个一个试，新的方法可以直接将不合法的邮箱格式写入pytest中
+#     """测试用例3：邮箱不含 @，期望 400，错误信息包含 "Invalid email format" """
+#     requests.post(f"{Base_url}/reset")  # 清空数据
+#
+#     url = f"{Base_url}/users"
+#     payload = {
+#         #邮箱中故意不包含@
+#         "email": "eve.holtreqres.in",
+#         "password": "pistol1"
+#     }
+#     response = requests.post(url, json=payload)
+#
+#     assert response.status_code == 400, f"期望状态码400，实际为{response.status_code}"
+#     data = response.json()
+#     assert "error" in data, "响应中缺少错误信息"
+#     assert "Invalid email format" in data["error"], "错误信息不符合预期"
+
+
+@pytest.mark.parametrize("invalid_email", [
+    "abc",                # 无@
+    "abc@",               # @后无内容
+    "@example.com",       # 无用户名
+    "a@b",                # 域名无点
+    "user@.com",          # 点开头
+])
+def test_register_invalid_email_multiple(invalid_email):
+    """参数化测试多种无效邮箱格式"""
+    requests.post(f"{Base_url}/reset")
+    payload = {"email": invalid_email, "password": "123456"}
+    response = requests.post(f"{Base_url}/users", json=payload)
+    assert response.status_code == 400
+    assert "Invalid email format" in response.json()["error"]
+
+

@@ -1,5 +1,6 @@
 # 1. 导入 Flask 相关的模块
 from flask import Flask, request, jsonify
+import re
 
 # 2. 创建一个 Flask 应用实例
 app = Flask(__name__)
@@ -27,9 +28,11 @@ def register():
     password = data['password']
 
     # 4.7 校验：“邮箱格式校验（必须包含@）"
-    if "@" not in email:
+    # 增强邮箱格式校验,邮箱格式校验改为：
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
         return jsonify({"error": "Invalid email format"}), 400
-        
+
     # 4.8 校验：密码长度（至少6位）
     if len(password) < 6:
         return jsonify({"error": "Password too short,minimum 6 characters"}), 400
