@@ -28,8 +28,15 @@ def register():
     password = data['password']
 
     # 4.7 校验：“邮箱格式校验（必须包含@）"
-    # 增强邮箱格式校验,邮箱格式校验改为：
+    """
+        增强邮箱格式校验,邮箱格式校验改为：
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    """
+
+    # 更严格的邮箱正则：域名部分不允许连续的点，且不能以点开头或结尾
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$'
+
     if not re.match(email_pattern, email):
         return jsonify({"error": "Invalid email format"}), 400
 

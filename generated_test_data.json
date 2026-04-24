@@ -1,0 +1,16 @@
+{
+  "valid": [
+    "test.email@example.com",
+    "user.name+tag+sorting@example.com",
+    "x@example.co.uk",
+    "user_name123@example.org",
+    "firstname-lastname@example.net"
+  ],
+  "invalid": [
+    "plainaddress",
+    "@missingusername.com",
+    "username@.com.my",
+    "username@domain..com",
+    "username@domain,com"
+  ]
+}
