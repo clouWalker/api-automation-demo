@@ -1,12 +1,28 @@
-# 1. 导入 Flask 相关的模块
+# 1. 导入 Flask 相关的模块 Flask Mock后端
 from flask import Flask, request, jsonify
 import re
+from flask import Flask, request, jsonify
+from flask_cors import CORS  # 需要安装
 
 # 2. 创建一个 Flask 应用实例
 app = Flask(__name__)
+CORS(app)  # 允许所有跨域请求
 
 # 3. 模拟一个数据库（用 Python 列表存储用户数据）
 users = []
+
+
+# 手机号校验：允许带+86前缀，或者11位数字
+def is_valid_phone(phone):
+    # 去除空格和常见分隔符
+    phone = phone.replace(' ', '').replace('-', '')
+    # 允许 +86 或 0086 开头
+    if phone.startswith('+86'):
+        phone = phone[3:]
+    elif phone.startswith('0086'):
+        phone = phone[4:]
+    # 最终应该是11位数字
+    return phone.isdigit() and len(phone) == 11 and phone[0] == '1'
 
 
 # 4. 定义一个路由：当客户端发送 POST 请求到 /users 时，执行下面的函数
@@ -23,6 +39,7 @@ def register():
     # 4.3 校验：如果没有 password 字段
     if not data.get('password'):
         return jsonify({"error": "Missing password"}), 400
+
     
     email = data['email']
     password = data['password']
@@ -40,19 +57,33 @@ def register():
     if not re.match(email_pattern, email):
         return jsonify({"error": "Invalid email format"}), 400
 
+    # 4.29新增：校验手机号
+    phone = data.get('phone')
+    if not phone:
+        return jsonify({"error": "Missing phone"}), 400
+
+    # 简单手机号校验： 11位数字，以1开头
+    if not is_valid_phone(phone):
+        return jsonify({"error": "Invalid phone number"}), 400
+
     # 4.8 校验：密码长度（至少6位）
+    if not password:
+        return jsonify({"error": "Missing password"}), 400
     if len(password) < 6:
         return jsonify({"error": "Password too short,minimum 6 characters"}), 400
     
-    # 4.9 校验：邮箱是否已被注册
+    # 4.9 校验：邮箱或者手机号是否已被注册
     for user in users:
         if user["email"] == email:
             return jsonify({"error": "Email already registered"}), 409
+        if user.get("phone") == phone:
+            return jsonify({"error": "Phone already registered"}), 409
 
     # 4.4 校验通过，创建新用户（模拟保存到数据库）
     new_user = {
         "id": len(users) + 1,  # 自动生成 ID
-        "email": email  # 只存储邮箱，不存密码（真实项目也不会存明文密码）
+        "email": email,  # 只存储邮箱，不存密码（真实项目也不会存明文密码）
+        "phone": phone
     }
     
     users.append(new_user)  # 添加到列表中

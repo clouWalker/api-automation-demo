@@ -1,0 +1,12 @@
+{
+  "valid": [
+    "test.user@example.com",
+    "hello123@gmail.com",
+    "user_name@domain.org"
+  ],
+  "invalid": [
+    "userexample.com",
+    "@example.com",
+    "invalid@@domain.com"
+  ]
+}

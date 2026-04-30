@@ -21,13 +21,14 @@ api-test-practice/ <br>
 
 ## 环境准备
 
-1. 安装依赖 
+1. 安装依赖
+    ```bash
+    pip install -r requirements.txt
+    playwright install msedge   # 安装 Edge 浏览器驱动
+   
+2. 启动后端服务（必须）
    ```bash
-   pip install -r requirements.txt
-   playwright install msedge   # 安装 Edge 浏览器驱动
-
-2.启动后端服务（必须）<br>
-    python mock_server.py 
+   python mock_server.py 
 
 ## 运行测试
 
