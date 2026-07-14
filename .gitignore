@@ -2,3 +2,4 @@ ai_testing/.env
 .venv/
 __pycache__/
 .pytest_cache/
+report.html

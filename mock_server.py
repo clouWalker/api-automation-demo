@@ -1,8 +1,7 @@
 # 1. 导入 Flask 相关的模块 Flask Mock后端
 from flask import Flask, request, jsonify
-import re
-from flask import Flask, request, jsonify
 from flask_cors import CORS  # 需要安装
+import re
 
 # 2. 创建一个 Flask 应用实例
 app = Flask(__name__)
