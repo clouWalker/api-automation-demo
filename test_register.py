@@ -6,6 +6,9 @@ import requests,pytest,json,os
 #1.确保 mock服务器 已经在终端中启动并运行python mock_server.py
 Base_url="http://localhost:3000"
 
+# 合法手机号，用于需要注册成功的用例
+VALID_PHONE = "13800138000"
+
 # 尝试读取AI生成的测试数据，如果文件不存在则使用默认数据
 test_data_file = "generated_test_data.json"
 if os.path.exists(test_data_file):
@@ -26,7 +29,8 @@ def test_register_success():
     url = f"{Base_url}/users"
     payload = {
         "email":"test01@example.com",
-        "password":"123456"
+        "password":"123456",
+        "phone": VALID_PHONE
     }
 
     response = requests.post(url,json=payload)
@@ -86,7 +90,8 @@ def test_register_short_password():
     payload = {
         #密码长度小于6
         "email": "eve.holt@reqres.in",
-        "password": "pass"
+        "password": "pass",
+        "phone": VALID_PHONE
     }
     response = requests.post(url, json=payload)
 
@@ -95,6 +100,33 @@ def test_register_short_password():
     assert "error" in data, "响应中缺少错误信息"
     assert "Password too short" in data["error"], "错误信息不符合预期"
 
+def test_register_missing_phone():
+    """测试用例：缺少 phone 字段，期望 400，错误信息包含 "Missing phone" """
+    requests.post(f"{Base_url}/reset")
+    url = f"{Base_url}/users"
+    payload = {
+        "email": "nophone@example.com",
+        "password": "123456"
+    }
+    response = requests.post(url, json=payload)
+    assert response.status_code == 400
+    assert "Missing phone" in response.json()["error"]
+
+
+def test_register_invalid_phone():
+    """测试用例：手机号格式非法，期望 400，错误信息包含 "Invalid phone number" """
+    requests.post(f"{Base_url}/reset")
+    url = f"{Base_url}/users"
+    payload = {
+        "email": "badphone@example.com",
+        "password": "123456",
+        "phone": "12345"
+    }
+    response = requests.post(url, json=payload)
+    assert response.status_code == 400
+    assert "Invalid phone number" in response.json()["error"]
+
+
 def test_register_duplicate_email():
     """测试用例5：先注册一个邮箱，再用同一个邮箱再次注册，期望 409，错误信息包含 "Email already registered" """
     requests.post(f"{Base_url}/reset")
@@ -102,7 +134,8 @@ def test_register_duplicate_email():
     url = f"{Base_url}/users"
     payload = {
         "email": "duplicate@example.com",
-        "password": "password"
+        "password": "password",
+        "phone": VALID_PHONE
     }
     # 第一次注册，应该成功
     response1 = requests.post(url, json=payload)
@@ -123,7 +156,8 @@ def test_get_users():
     for i in range(1,4):
         payload = {
             "email": f"user{i}@example.com",
-            "password": "123456"
+            "password": "123456",
+            "phone": f"1380000000{i}"
         }
         resp = requests.post(f"{Base_url}/users", json=payload)
         assert resp.status_code == 201
@@ -157,7 +191,7 @@ def test_delete_user_success():
     """先创建一个用户，然后删除它，断言删除成功，且再次获取用户列表时不再包含该用户"""
     requests.post(f"{Base_url}/reset")
     # 1. 创建用户
-    create_resp = requests.post(f"{Base_url}/users", json={"email": "delete@example.com", "password": "123456"})
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "delete@example.com", "password": "123456", "phone": VALID_PHONE})
     assert create_resp.status_code == 201
     user_id = create_resp.json()["id"]
 
@@ -186,7 +220,7 @@ def test_update_user_success():
     """正常更新用户邮箱"""
     requests.post(f"{Base_url}/reset")
     # 创建用户
-    create_resp = requests.post(f"{Base_url}/users", json={"email": "old@example.com", "password": "123456"})
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "old@example.com", "password": "123456", "phone": VALID_PHONE})
     assert create_resp.status_code == 201
     user_id = create_resp.json()["id"]
 
@@ -215,7 +249,7 @@ def test_update_user_not_found():
 def test_update_user_invalid_email():
     """新邮箱格式错误 → 400"""
     requests.post(f"{Base_url}/reset")
-    create_resp = requests.post(f"{Base_url}/users", json={"email": "valid@example.com", "password": "123456"})
+    create_resp = requests.post(f"{Base_url}/users", json={"email": "valid@example.com", "password": "123456", "phone": VALID_PHONE})
     assert create_resp.status_code == 201
     user_id = create_resp.json()["id"]
 
@@ -228,8 +262,8 @@ def test_update_user_email_conflict():
     """新邮箱已被其他用户占用 → 409"""
     requests.post(f"{Base_url}/reset")
     # 创建两个用户
-    resp1 = requests.post(f"{Base_url}/users", json={"email": "first@example.com", "password": "123456"})
-    resp2 = requests.post(f"{Base_url}/users", json={"email": "second@example.com", "password": "123456"})
+    resp1 = requests.post(f"{Base_url}/users", json={"email": "first@example.com", "password": "123456", "phone": VALID_PHONE})
+    resp2 = requests.post(f"{Base_url}/users", json={"email": "second@example.com", "password": "123456", "phone": "13900139000"})
     assert resp1.status_code == 201
     assert resp2.status_code == 201
     user1_id = resp1.json()["id"]
@@ -287,7 +321,7 @@ def reset_data():
 # Test POST /users
 def test_post_users_success():
     """Test successful user registration."""
-    payload = {"email": "test@example.com", "password": "password123"}
+    payload = {"email": "test@example.com", "password": "password123", "phone": VALID_PHONE}
     response = requests.post(f"{Base_url}/users", json=payload)
     assert response.status_code == 201
     data = response.json()
@@ -324,7 +358,7 @@ def test_post_users_invalid_email_format():
 
 def test_post_users_short_password():
     """Test user registration with short password."""
-    payload = {"email": "test@example.com", "password": "123"}
+    payload = {"email": "test@example.com", "password": "123", "phone": VALID_PHONE}
     response = requests.post(f"{Base_url}/users", json=payload)
     assert response.status_code == 400
     data = response.json()
@@ -333,7 +367,7 @@ def test_post_users_short_password():
 
 def test_post_users_email_already_registered():
     """Test user registration with an already registered email."""
-    payload = {"email": "test@example.com", "password": "password123"}
+    payload = {"email": "test@example.com", "password": "password123", "phone": VALID_PHONE}
     # First registration
     response = requests.post(f"{Base_url}/users", json=payload)
     assert response.status_code == 201
@@ -349,8 +383,8 @@ def test_get_users_success():
     """Test successful retrieval of user list."""
     # Create some users
     users = [
-        {"email": "user1@example.com", "password": "password123"},
-        {"email": "user2@example.com", "password": "password123"},
+        {"email": "user1@example.com", "password": "password123", "phone": VALID_PHONE},
+        {"email": "user2@example.com", "password": "password123", "phone": "13900000001"},
     ]
     for user in users:
         requests.post(f"{Base_url}/users", json=user)
@@ -373,7 +407,7 @@ def test_get_users_pagination():
     """Test user list pagination."""
     # Create 15 users
     for i in range(15):
-        requests.post(f"{Base_url}/users", json={"email": f"user{i}@example.com", "password": "password123"})
+        requests.post(f"{Base_url}/users", json={"email": f"user{i}@example.com", "password": "password123", "phone": f"137000000{i:02d}"})
 
     # Retrieve first page with default limit
     response = requests.get(f"{Base_url}/users", params={"page": 1, "limit": 10})
